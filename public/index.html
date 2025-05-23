@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>文字デザインジェネレーター</title>
+  <style>
+    body {
+      background: #222;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    canvas {
+      background: transparent;
+      margin: 20px 0;
+      border: 1px solid #555;
+    }
+
+    textarea {
+      width: 90%;
+      max-width: 600px;
+      height: 80px;
+      font-size: 16px;
+      padding: 10px;
+    }
+
+    button, select {
+      margin: 5px;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    #fontButtons button {
+      margin: 0 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>文字デザインジェネレーター</h1>
+
+  <textarea id="textInput" placeholder="ここに文字を入力">これはサンプルのテキストです。長くても折り返されて表示されます。</textarea><br>
+
+  <!-- フォント切り替え -->
+  <div id="fontButtons">
+    <strong>フォント:</strong>
+    <button onclick="changeFont('serif')">Serif</button>
+    <button onclick="changeFont('sans-serif')">Sans-serif</button>
+    <button onclick="changeFont('monospace')">Monospace</button>
+    <button onclick="changeFont('cursive')">Cursive</button>
+    <button onclick="changeFont('Meiryo')">メイリオ</button>
+    <button onclick="changeFont('Hiragino Kaku Gothic ProN')">ヒラギノ角ゴ</button>
+  </div>
+
+  <!-- サイズ・太さ切り替え -->
+  <div>
+    <strong>サイズ:</strong>
+    <button onclick="changeSize(-5)">−</button>
+    <span id="sizeDisplay">40</span>px
+    <button onclick="changeSize(5)">＋</button>
+
+    <strong style="margin-left:20px;">太さ:</strong>
+    <button onclick="toggleWeight()">太字/通常</button>
+  </div>
+
+  <!-- 柄切り替え -->
+  <select id="patternSelect" onchange="drawText()">
+    <option value="wafu">和風柄</option>
+    <option value="heart">ハート柄</option>
+    <option value="romantic">大正浪漫</option>
+    <option value="horror">ホラー柄</option>
+    <option value="wedding">ウエディング柄</option>
+  </select><br>
+
+  <!-- 描画キャンバス -->
+  <canvas id="canvas" width="600" height="300"></canvas><br>
+  <button onclick="downloadImage()">画像をダウンロード</button>
+
+  <!-- 画像読み込み（非表示） -->
+  <img id="img-wafu" src="images/wafu.png" hidden>
+  <img id="img-heart" src="images/heart.png" hidden>
+  <img id="img-romantic" src="images/romantic.png" hidden>
+  <img id="img-horror" src="images/horror.png" hidden>
+  <img id="img-wedding" src="images/wedding.png" hidden>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let currentFont = 'serif';
+    let fontSize = 40;
+    let fontWeight = 'normal';
+
+    function changeFont(font) {
+      currentFont = font;
+      drawText();
+    }
+
+    function changeSize(amount) {
+      fontSize = Math.max(10, fontSize + amount);
+      document.getElementById('sizeDisplay').textContent = fontSize;
+      drawText();
+    }
+
+    function toggleWeight() {
+      fontWeight = (fontWeight === 'normal') ? 'bold' : 'normal';
+      drawText();
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const lines = [];
+      const paragraphs = text.split('\n');
+      for (let p of paragraphs) {
+        const words = p.split('');
+        let line = '';
+        for (let n = 0; n < words.length; n++) {
+          const testLine = line + words[n];
+          const metrics = ctx.measureText(testLine);
+          const testWidth = metrics.width;
+          if (testWidth > maxWidth && line !== '') {
+            lines.push(line);
+            line = words[n];
+          } else {
+            line = testLine;
+          }
+        }
+        lines.push(line);
+      }
+
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], x, y + (i * lineHeight));
+      }
+    }
+
+    function drawText() {
+      const rawText = document.getElementById('textInput').value;
+      const patternId = document.getElementById('patternSelect').value;
+      const img = document.getElementById(`img-${patternId}`);
+
+      if (!img.complete) {
+        img.onload = () => drawText();
+        return;
+      }
+
+      const pattern = ctx.createPattern(img, 'repeat');
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = pattern;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.font = `${fontWeight} ${fontSize}px ${currentFont}`;
+
+      const maxWidth = canvas.width * 0.8;
+      const lineHeight = fontSize * 1.4;
+      const x = canvas.width / 2;
+      const y = 30;
+
+      wrapText(ctx, rawText, x, y, maxWidth, lineHeight);
+    }
+
+    function downloadImage() {
+      const link = document.createElement('a');
+      link.download = '文字画像.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    window.onload = () => {
+      drawText();
+    }
+  </script>
+</body>
+</html>
